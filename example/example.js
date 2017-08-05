@@ -1,41 +1,44 @@
 /* global $, ace, ansiHTML, Cucumber */
-
+import $ from 'jquery'
+import 'ace' from 
 let featureEditor, stepDefinitionsEditor, $output
 
 function runFeature() {
   $output.empty()
   $('a[href="#output-tab"]').tab('show')
 
+  const eventBroadcaster = new events.EventEmitter()
+
   let featureSource = featureEditor.getValue()
-  let feature = Cucumber.FeatureParser.parse({
-    scenarioFilter: new Cucumber.ScenarioFilter({}),
+  const testCases = Cucumber.getTestCases({
+    eventBroadcaster,
+    pickleFilter: new Cucumber.PickleFilter({}),
     source: featureSource,
     uri: '/feature'
   })
 
-  Cucumber.clearSupportCodeFns()
   new Function(stepDefinitionsEditor.getValue())()
-  let supportCodeLibrary = Cucumber.SupportCodeLibraryBuilder.build({
-    cwd: '/',
-    fns: Cucumber.getSupportCodeFns()
-  })
+  let supportCodeLibrary = Cucumber.supportCodeLibraryBuilder.finalize()
 
   let formatterOptions = {
     colorsEnabled: true,
     cwd: '/',
+    eventBroadcaster,
+    eventDataCollector: new Cucumber.EventDataCollector(eventBroadcaster),
     log(data) {
       appendToOutput(ansiHTML(data))
     },
     supportCodeLibrary
   }
   let prettyFormatter = Cucumber.FormatterBuilder.build(
-    'pretty',
+    'progress',
     formatterOptions
   )
 
   let runtime = new Cucumber.Runtime({
-    features: [feature],
-    listeners: [prettyFormatter],
+    eventBroadcaster,
+    options: {},
+    testCases,
     supportCodeLibrary
   })
   return runtime.start()
