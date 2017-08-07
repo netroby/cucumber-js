@@ -4,7 +4,7 @@
 .nyc_output/
 @rerun.txt
 coverage/
-example/bundle.js
+dist/browser-example.js
 lib/
 node_modules
 usage.txt

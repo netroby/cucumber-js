@@ -2,8 +2,8 @@
 
 set -e
 
-# Build bundle, remove source
-yarn build-browser-example-bundle
+# Build example, remove source
+yarn build-browser-example
 rm example/index.js
 
 # Copy resources
