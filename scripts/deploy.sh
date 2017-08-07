@@ -2,10 +2,12 @@
 
 set -e
 
+# Build bundle, remove source
+yarn build-browser-example-bundle
+rm example/index.js
+
 # Copy resources
 rsync -a dist/ example/
-mkdir example/ansi-html
-cp node_modules/ansi-html/index.js example/ansi-html/index.js
 
 # Publish to gh-pages
 cd example

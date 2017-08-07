@@ -54767,6 +54767,7 @@ module.exports={
     "tmp": "0.0.31"
   },
   "scripts": {
+    "build-browser-example-bundle": "BABEL_ENV=browser browserify example/index.js -o example/bundle.js -t babelify",
     "build-local-continuous": "babel src --watch -d lib --ignore '**/*_spec.js'",
     "build-local": "babel src -d lib --ignore '**/*_spec.js'",
     "build-release": "BABEL_ENV=browser browserify src/index.js -o dist/cucumber.js -t babelify --standalone Cucumber",
@@ -55258,7 +55259,7 @@ exports.default = ConfigurationBuilder;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getTestCases = exports.getExpandedArgv = undefined;
+exports.getTestCases = exports.getTestCasesFromFilesystem = exports.getExpandedArgv = undefined;
 
 var _regenerator = require('babel-runtime/regenerator');
 
@@ -55305,25 +55306,24 @@ var getExpandedArgv = exports.getExpandedArgv = function () {
   };
 }();
 
-var getTestCases = exports.getTestCases = function () {
+var getTestCasesFromFilesystem = exports.getTestCasesFromFilesystem = function () {
   var _ref4 = (0, _bluebird.coroutine)(_regenerator2.default.mark(function _callee3(_ref3) {
     var _this = this;
 
     var cwd = _ref3.cwd,
         eventBroadcaster = _ref3.eventBroadcaster,
         featurePaths = _ref3.featurePaths,
-        pickleFilterOptions = _ref3.pickleFilterOptions;
-    var pickleFilter, result;
+        pickleFilter = _ref3.pickleFilter;
+    var result;
     return _regenerator2.default.wrap(function _callee3$(_context3) {
       while (1) {
         switch (_context3.prev = _context3.next) {
           case 0:
-            pickleFilter = new _pickle_filter2.default(pickleFilterOptions);
             result = [];
-            _context3.next = 4;
+            _context3.next = 3;
             return _bluebird2.default.each(featurePaths, function () {
               var _ref5 = (0, _bluebird.coroutine)(_regenerator2.default.mark(function _callee2(featurePath) {
-                var source, events;
+                var source;
                 return _regenerator2.default.wrap(function _callee2$(_context2) {
                   while (1) {
                     switch (_context2.prev = _context2.next) {
@@ -55333,27 +55333,20 @@ var getTestCases = exports.getTestCases = function () {
 
                       case 2:
                         source = _context2.sent;
-                        events = _gherkin2.default.generateEvents(source, _path2.default.relative(cwd, featurePath));
-
-                        events.forEach(function (event) {
-                          eventBroadcaster.emit(event.type, _lodash2.default.omit(event, 'type'));
-                          if (event.type === 'pickle') {
-                            var pickle = event.pickle,
-                                uri = event.uri;
-
-                            if (pickleFilter.matches({ pickle: pickle, uri: uri })) {
-                              eventBroadcaster.emit('pickle-accepted', { pickle: pickle, uri: uri });
-                              result.push({ pickle: pickle, uri: uri });
-                            } else {
-                              eventBroadcaster.emit('pickle-rejected', { pickle: pickle, uri: uri });
-                            }
-                          }
-                          if (event.type === 'attachment') {
-                            throw new Error(event.data);
-                          }
+                        _context2.t0 = result;
+                        _context2.next = 6;
+                        return getTestCases({
+                          eventBroadcaster: eventBroadcaster,
+                          source: source,
+                          pickleFilter: pickleFilter,
+                          uri: _path2.default.relative(cwd, featurePath)
                         });
 
-                      case 5:
+                      case 6:
+                        _context2.t1 = _context2.sent;
+                        result = _context2.t0.concat.call(_context2.t0, _context2.t1);
+
+                      case 8:
                       case 'end':
                         return _context2.stop();
                     }
@@ -55366,10 +55359,10 @@ var getTestCases = exports.getTestCases = function () {
               };
             }());
 
-          case 4:
+          case 3:
             return _context3.abrupt('return', result);
 
-          case 5:
+          case 4:
           case 'end':
             return _context3.stop();
         }
@@ -55377,8 +55370,53 @@ var getTestCases = exports.getTestCases = function () {
     }, _callee3, this);
   }));
 
-  return function getTestCases(_x2) {
+  return function getTestCasesFromFilesystem(_x2) {
     return _ref4.apply(this, arguments);
+  };
+}();
+
+var getTestCases = exports.getTestCases = function () {
+  var _ref7 = (0, _bluebird.coroutine)(_regenerator2.default.mark(function _callee4(_ref6) {
+    var eventBroadcaster = _ref6.eventBroadcaster,
+        pickleFilter = _ref6.pickleFilter,
+        source = _ref6.source,
+        uri = _ref6.uri;
+    var result, events;
+    return _regenerator2.default.wrap(function _callee4$(_context4) {
+      while (1) {
+        switch (_context4.prev = _context4.next) {
+          case 0:
+            result = [];
+            events = _gherkin2.default.generateEvents(source, uri);
+
+            events.forEach(function (event) {
+              eventBroadcaster.emit(event.type, _lodash2.default.omit(event, 'type'));
+              if (event.type === 'pickle') {
+                var pickle = event.pickle;
+
+                if (pickleFilter.matches({ pickle: pickle, uri: uri })) {
+                  eventBroadcaster.emit('pickle-accepted', { pickle: pickle, uri: uri });
+                  result.push({ pickle: pickle, uri: uri });
+                } else {
+                  eventBroadcaster.emit('pickle-rejected', { pickle: pickle, uri: uri });
+                }
+              }
+              if (event.type === 'attachment') {
+                throw new Error(event.data);
+              }
+            });
+            return _context4.abrupt('return', result);
+
+          case 4:
+          case 'end':
+            return _context4.stop();
+        }
+      }
+    }, _callee4, this);
+  }));
+
+  return function getTestCases(_x4) {
+    return _ref7.apply(this, arguments);
   };
 }();
 
@@ -55406,13 +55444,9 @@ var _profile_loader = require('./profile_loader');
 
 var _profile_loader2 = _interopRequireDefault(_profile_loader);
 
-var _pickle_filter = require('../pickle_filter');
-
-var _pickle_filter2 = _interopRequireDefault(_pickle_filter);
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-},{"../pickle_filter":347,"./argv_parser":309,"./profile_loader":316,"babel-runtime/regenerator":27,"bluebird":31,"gherkin":206,"lodash":236,"mz/fs":239,"path":246}],312:[function(require,module,exports){
+},{"./argv_parser":309,"./profile_loader":316,"babel-runtime/regenerator":27,"bluebird":31,"gherkin":206,"lodash":236,"mz/fs":239,"path":246}],312:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -55545,6 +55579,10 @@ var _fs2 = _interopRequireDefault(_fs);
 var _path = require('path');
 
 var _path2 = _interopRequireDefault(_path);
+
+var _pickle_filter = require('../pickle_filter');
+
+var _pickle_filter2 = _interopRequireDefault(_pickle_filter);
 
 var _runtime = require('../runtime');
 
@@ -55752,11 +55790,11 @@ var Cli = function () {
               case 15:
                 cleanup = _context5.sent;
                 _context5.next = 18;
-                return (0, _helpers2.getTestCases)({
+                return (0, _helpers2.getTestCasesFromFilesystem)({
                   cwd: this.cwd,
                   eventBroadcaster: eventBroadcaster,
                   featurePaths: configuration.featurePaths,
-                  pickleFilterOptions: configuration.pickleFilterOptions
+                  pickleFilter: new _pickle_filter2.default(configuration.pickleFilterOptions)
                 });
 
               case 18:
@@ -55798,7 +55836,7 @@ var Cli = function () {
 
 exports.default = Cli;
 
-},{"../formatter/builder":317,"../formatter/helpers":323,"../runtime":350,"../support_code_library_builder":358,"./configuration_builder":310,"./helpers":311,"./i18n":312,"./install_validator":314,"babel-runtime/helpers/classCallCheck":20,"babel-runtime/helpers/createClass":21,"babel-runtime/helpers/extends":23,"babel-runtime/regenerator":27,"bluebird":31,"events":202,"mz/fs":239,"path":246}],314:[function(require,module,exports){
+},{"../formatter/builder":317,"../formatter/helpers":323,"../pickle_filter":347,"../runtime":350,"../support_code_library_builder":358,"./configuration_builder":310,"./helpers":311,"./i18n":312,"./install_validator":314,"babel-runtime/helpers/classCallCheck":20,"babel-runtime/helpers/createClass":21,"babel-runtime/helpers/extends":23,"babel-runtime/regenerator":27,"bluebird":31,"events":202,"mz/fs":239,"path":246}],314:[function(require,module,exports){
 (function (__dirname){
 'use strict';
 
@@ -58445,7 +58483,7 @@ exports.default = UsageJsonFormatter;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.When = exports.Then = exports.setWorldConstructor = exports.setDefinitionFunctionWrapper = exports.setDefaultTimeout = exports.registerListener = exports.registerHandler = exports.Given = exports.defineSupportCode = exports.defineStep = exports.defineParameterType = exports.BeforeAll = exports.Before = exports.AfterAll = exports.After = exports.formatterHelpers = exports.UsageJsonFormatter = exports.UsageFormatter = exports.SummaryFormatter = exports.SnippetsFormatter = exports.RerunFormatter = exports.ProgressFormatter = exports.JsonFormatter = exports.FormatterBuilder = exports.Formatter = exports.supportCodeLibraryBuilder = exports.Status = exports.Runtime = exports.PickleFilter = exports.Cli = undefined;
+exports.When = exports.Then = exports.setWorldConstructor = exports.setDefinitionFunctionWrapper = exports.setDefaultTimeout = exports.registerListener = exports.registerHandler = exports.Given = exports.defineSupportCode = exports.defineStep = exports.defineParameterType = exports.BeforeAll = exports.Before = exports.AfterAll = exports.After = exports.formatterHelpers = exports.UsageJsonFormatter = exports.UsageFormatter = exports.SummaryFormatter = exports.SnippetsFormatter = exports.RerunFormatter = exports.ProgressFormatter = exports.JsonFormatter = exports.FormatterBuilder = exports.Formatter = exports.supportCodeLibraryBuilder = exports.Status = exports.Runtime = exports.PickleFilter = exports.getTestCasesFromFilesystem = exports.getTestCases = exports.Cli = undefined;
 
 var _cli = require('./cli');
 
@@ -58453,6 +58491,21 @@ Object.defineProperty(exports, 'Cli', {
   enumerable: true,
   get: function get() {
     return _interopRequireDefault(_cli).default;
+  }
+});
+
+var _helpers = require('./cli/helpers');
+
+Object.defineProperty(exports, 'getTestCases', {
+  enumerable: true,
+  get: function get() {
+    return _helpers.getTestCases;
+  }
+});
+Object.defineProperty(exports, 'getTestCasesFromFilesystem', {
+  enumerable: true,
+  get: function get() {
+    return _helpers.getTestCasesFromFilesystem;
   }
 });
 
@@ -58573,9 +58626,9 @@ Object.defineProperty(exports, 'UsageJsonFormatter', {
   }
 });
 
-var _helpers = require('./formatter/helpers');
+var _helpers2 = require('./formatter/helpers');
 
-var formatterHelpers = _interopRequireWildcard(_helpers);
+var formatterHelpers = _interopRequireWildcard(_helpers2);
 
 var _support_code_library_builder2 = _interopRequireDefault(_support_code_library_builder);
 
@@ -58604,7 +58657,7 @@ var setWorldConstructor = exports.setWorldConstructor = methods.setWorldConstruc
 var Then = exports.Then = methods.Then;
 var When = exports.When = methods.When;
 
-},{"./cli":313,"./formatter":331,"./formatter/builder":317,"./formatter/helpers":323,"./formatter/json_formatter":332,"./formatter/progress_formatter":334,"./formatter/rerun_formatter":335,"./formatter/snippets_formatter":336,"./formatter/summary_formatter":339,"./formatter/usage_formatter":340,"./formatter/usage_json_formatter":341,"./pickle_filter":347,"./runtime":350,"./status":354,"./support_code_library_builder":358}],343:[function(require,module,exports){
+},{"./cli":313,"./cli/helpers":311,"./formatter":331,"./formatter/builder":317,"./formatter/helpers":323,"./formatter/json_formatter":332,"./formatter/progress_formatter":334,"./formatter/rerun_formatter":335,"./formatter/snippets_formatter":336,"./formatter/summary_formatter":339,"./formatter/usage_formatter":340,"./formatter/usage_json_formatter":341,"./pickle_filter":347,"./runtime":350,"./status":354,"./support_code_library_builder":358}],343:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
